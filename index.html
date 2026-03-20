@@ -10,71 +10,80 @@
             --text-main: #0f172a;
             --text-sub: #64748b;
             --wing-color: #334155;
-            --lift-color: #3b82f6;   
-            --gravity-color: #94a3b8; 
-            --thrust-color: #10b981;  
-            --drag-color: #ef4444;    
+            --lift-color: #3b82f6;
+            --gravity-color: #94a3b8;
+            --thrust-color: #10b981;
+            --drag-color: #ef4444;
         }
+
+        *, *::before, *::after { box-sizing: border-box; }
 
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
             font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
+            touch-action: none;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none; -webkit-user-select: none;
         }
 
         #simulationCanvas { display: block; width: 100%; height: 100%; }
         .overlay { position: absolute; pointer-events: none; }
 
-        /* 시작 버튼 오버레이 */
+        /* ── 시작 오버레이 ── */
         .start-overlay {
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255, 255, 255, 0.4);
+            background: rgba(255,255,255,0.4);
             backdrop-filter: blur(8px);
-            display: flex; justify-content: center; align-items: center;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center; gap: 12px;
             pointer-events: auto; z-index: 100;
         }
         .start-btn {
             padding: 16px 36px; font-size: 20px; font-weight: 700;
             color: #fff; background-color: var(--lift-color);
             border: none; border-radius: 12px; cursor: pointer;
-            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+            box-shadow: 0 4px 15px rgba(59,130,246,0.4);
             transition: all 0.2s ease;
         }
-        .start-btn:hover { background-color: #2563eb; transform: translateY(-2px); }
+        .start-btn:hover  { background-color: #2563eb; transform: translateY(-2px); }
         .start-btn:active { transform: translateY(0); }
+        .start-hint { font-size: 13px; color: var(--text-sub); }
 
-        /* 제목 레이아웃 */
-        .header { top: 40px; left: 0; width: 100%; text-align: center; }
-        h1 { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
-        p.subtitle { margin: 8px 0 0 0; font-size: 15px; color: var(--text-sub); }
+        /* ── 헤더 ── */
+        .header { top: 20px; left: 0; width: 100%; text-align: center; padding: 0 16px; }
+        h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.3; }
+        p.subtitle { margin: 6px 0 0 0; font-size: 13px; color: var(--text-sub); }
 
-        /* 상태 표시 HUD */
+        /* ── HUD (좌하단 데스크탑 / 좌상단 모바일) ── */
         .hud-status {
-            bottom: 50px; left: 50px; pointer-events: auto; display: flex; flex-direction: column; gap: 20px;
+            bottom: 50px; left: 50px;
+            pointer-events: auto; display: flex; flex-direction: column; gap: 16px;
         }
         .hud-box { display: flex; flex-direction: column; }
-        .hud-label { font-size: 14px; color: var(--text-sub); margin-bottom: 4px; font-weight: 600; }
-        .hud-val { font-size: 48px; font-weight: 800; line-height: 1; letter-spacing: -1px; }
-        .hud-unit { font-size: 18px; font-weight: 500; color: var(--text-sub); margin-left: 4px; }
-        .alert { color: #ef4444; font-size: 14px; font-weight: bold; margin-top: 5px; opacity: 0; transition: opacity 0.3s;}
+        .hud-label { font-size: 12px; color: var(--text-sub); margin-bottom: 2px; font-weight: 600; }
+        .hud-val { font-size: 44px; font-weight: 800; line-height: 1; letter-spacing: -1px; }
+        .hud-unit { font-size: 16px; font-weight: 500; color: var(--text-sub); margin-left: 3px; }
+        .alert { color: #ef4444; font-size: 13px; font-weight: bold; margin-top: 4px; opacity: 0; transition: opacity 0.3s; }
 
-        /* 우측 하단 컨트롤러 & 미니맵 컨테이너 */
+        /* ── 우측 패널 ── */
         .right-panel {
-            bottom: 50px; right: 50px; width: 300px;
-            display: flex; flex-direction: column; gap: 16px; pointer-events: none;
+            bottom: 50px; right: 50px; width: 280px;
+            display: flex; flex-direction: column; gap: 12px; pointer-events: none;
         }
 
-        /* 고도 미니맵 */
+        /* ── 미니맵 ── */
         .minimap-wrapper {
-            background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(12px);
-            padding: 20px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.06);
+            background: rgba(255,255,255,0.7); backdrop-filter: blur(12px);
+            padding: 16px; border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.06);
             border: 1px solid rgba(255,255,255,0.8); pointer-events: auto;
         }
-        .minimap-title { font-size: 14px; font-weight: 700; margin-bottom: 12px; color: var(--text-main); }
-        .minimap-container { 
-            position: relative; height: 120px; border-left: 3px solid #cbd5e1; 
-            margin-left: 10px; margin-top: 10px; border-radius: 4px;
+        .minimap-title { font-size: 13px; font-weight: 700; margin-bottom: 10px; color: var(--text-main); }
+        .minimap-container {
+            position: relative; height: 110px; border-left: 3px solid #cbd5e1;
+            margin-left: 10px; margin-top: 8px; border-radius: 4px;
             background: linear-gradient(to top,
                 rgba(186,230,253,0.55) 0%,   rgba(186,230,253,0.55) 12%,
                 rgba(165,180,252,0.45) 12%,  rgba(165,180,252,0.45) 50%,
@@ -82,14 +91,14 @@
                 rgba(15,23,42,0.50)   85%,   rgba(15,23,42,0.50)   100%
             );
         }
-        .minimap-label { position: absolute; left: 15px; font-size: 11px; color: var(--text-sub); font-weight: 600; white-space: nowrap;}
-        .karman-mark { top: -6px; color: #0f172a;}
+        .minimap-label { position: absolute; left: 12px; font-size: 10px; color: var(--text-sub); font-weight: 600; white-space: nowrap; }
+        .karman-mark { top: -6px; color: #0f172a; }
         .cruise-mark { bottom: 10%; transform: translateY(50%); }
         .ground-mark { bottom: -6px; }
-        .minimap-plane { 
-            position: absolute; left: -7px; width: 11px; height: 11px; 
-            background: var(--lift-color); border-radius: 50%; 
-            box-shadow: 0 0 8px rgba(59,130,246,0.6); 
+        .minimap-plane {
+            position: absolute; left: -7px; width: 11px; height: 11px;
+            background: var(--lift-color); border-radius: 50%;
+            box-shadow: 0 0 8px rgba(59,130,246,0.6);
             transition: bottom 0.1s linear; bottom: 0%;
         }
         .minimap-layer-mark {
@@ -97,33 +106,91 @@
             border-radius: 1.5px; transform: translateY(50%);
         }
 
-        /* 조작부 */
+        /* ── 컨트롤 패널 ── */
         .controls {
-            background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(12px);
-            padding: 28px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.06);
+            background: rgba(255,255,255,0.7); backdrop-filter: blur(12px);
+            padding: 22px; border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.06);
             border: 1px solid rgba(255,255,255,0.8); pointer-events: auto;
         }
-        .control-group { margin-bottom: 24px; }
+        .control-group { margin-bottom: 20px; }
         .control-group:last-child { margin-bottom: 0; }
-        .control-header { display: flex; justify-content: space-between; margin-bottom: 12px; align-items: flex-end; }
-        .control-name { font-size: 15px; font-weight: 600; }
-        .control-value { font-size: 15px; font-weight: 700; color: var(--lift-color); }
+        .control-header { display: flex; justify-content: space-between; margin-bottom: 10px; align-items: flex-end; }
+        .control-name  { font-size: 14px; font-weight: 600; }
+        .control-value { font-size: 14px; font-weight: 700; color: var(--lift-color); }
 
-        /* 슬라이더 커스텀 */
-        input { -webkit-appearance: none; width: 100%; background: transparent; }
-        input:focus { outline: none; }
-        input::-webkit-slider-thumb {
-            -webkit-appearance: none; height: 18px; width: 18px; border-radius: 50%;
-            background: var(--lift-color); cursor: pointer; margin-top: -7px;
-            box-shadow: 0 2px 6px rgba(59, 130, 246, 0.4);
+        /* ── 슬라이더 ── */
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; cursor: pointer; touch-action: none; }
+        input[type=range]:focus { outline: none; }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 22px; width: 22px; border-radius: 50%;
+            background: var(--lift-color); cursor: pointer; margin-top: -9px;
+            box-shadow: 0 2px 6px rgba(59,130,246,0.4);
         }
-        input::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #cbd5e1; border-radius: 2px; }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 4px; background: #cbd5e1; border-radius: 2px;
+        }
+        input[type=range]::-moz-range-thumb {
+            height: 22px; width: 22px; border-radius: 50%; border: none;
+            background: var(--lift-color); cursor: pointer;
+            box-shadow: 0 2px 6px rgba(59,130,246,0.4);
+        }
+        input[type=range]::-moz-range-track { height: 4px; background: #cbd5e1; border-radius: 2px; }
+
+        /* ════════════════════════════════════════════
+           모바일 레이아웃  (max-width: 768px 또는 터치)
+           ════════════════════════════════════════════ */
+        .is-mobile .header {
+            top: 12px; padding: 0 12px;
+        }
+        .is-mobile h1 { font-size: 14px; letter-spacing: -0.3px; }
+        .is-mobile p.subtitle { display: none; }
+
+        /* 모바일 HUD: 좌상단, 수평 배치 */
+        .is-mobile .hud-status {
+            bottom: auto; top: 52px; left: 12px;
+            flex-direction: row; gap: 16px; align-items: flex-end;
+        }
+        .is-mobile .hud-val { font-size: 28px; }
+        .is-mobile .hud-unit { font-size: 12px; }
+        .is-mobile .hud-label { font-size: 10px; }
+        .is-mobile .hud-box:nth-child(3) { display: none; } /* Reynolds 숨김 */
+        .is-mobile .alert { font-size: 11px; }
+
+        /* 모바일 우측 패널: 하단 전체 너비 */
+        .is-mobile .right-panel {
+            bottom: 0; right: 0; left: 0; width: 100%;
+            flex-direction: row; gap: 0;
+            align-items: stretch;
+            padding: 0;
+        }
+        .is-mobile .minimap-wrapper {
+            display: none; /* 모바일에서 미니맵 숨김 (공간 절약) */
+        }
+        .is-mobile .controls {
+            width: 100%; border-radius: 20px 20px 0 0;
+            padding: 16px 20px 20px;
+            display: flex; flex-direction: row; gap: 16px; align-items: center;
+        }
+        .is-mobile .control-group { margin-bottom: 0; flex: 1; }
+        .is-mobile .control-name  { font-size: 12px; }
+        .is-mobile .control-value { font-size: 12px; }
+        .is-mobile .control-header { margin-bottom: 8px; }
+        .is-mobile input[type=range]::-webkit-slider-thumb { height: 26px; width: 26px; margin-top: -11px; }
+
+        /* 가로 모드 모바일 보정 */
+        @media (max-height: 500px) and (orientation: landscape) {
+            .is-mobile .hud-status { top: 8px; }
+            .is-mobile h1 { font-size: 12px; }
+            .is-mobile .controls { padding: 10px 16px 12px; }
+        }
     </style>
 </head>
 <body>
 
     <div id="startOverlay" class="start-overlay">
         <button id="startBtn" class="start-btn">시뮬레이션 시작</button>
+        <p class="start-hint" id="startHint">슬라이더로 추력과 받음각을 조작하세요</p>
     </div>
 
     <canvas id="simulationCanvas"></canvas>
@@ -185,8 +252,38 @@
     </div>
 
     <script>
+        // ══════════════════════════════════════════
+        //  환경 감지 및 반응형 초기화
+        // ══════════════════════════════════════════
+        const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+        let isMobile = isTouchDevice || window.innerWidth < 768;
+
+        function applyDeviceClass() {
+            isMobile = isTouchDevice || window.innerWidth < 768;
+            document.body.classList.toggle('is-mobile', isMobile);
+        }
+        applyDeviceClass();
+
+        // 디바이스 픽셀 비율(DPR) — Retina/고해상도 디스플레이 선명도
+        const DPR = Math.min(window.devicePixelRatio || 1, 2);
+
         const canvas = document.getElementById('simulationCanvas');
         const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            applyDeviceClass();
+            const W = window.innerWidth;
+            const H = window.innerHeight;
+            canvas.width  = W * DPR;
+            canvas.height = H * DPR;
+            canvas.style.width  = W + 'px';
+            canvas.style.height = H + 'px';
+            ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+            // 오브제 x 좌표 비율 유지 (리사이즈 시 비례 보정)
+        }
+        window.addEventListener('resize', resizeCanvas);
+        window.addEventListener('orientationchange', () => { setTimeout(resizeCanvas, 100); });
+        resizeCanvas();
 
         const speedDisplay = document.getElementById('speedDisplay');
         const altDisplay = document.getElementById('altDisplay');
@@ -199,13 +296,6 @@
         const minimapPlane = document.getElementById('minimapPlane');
         const startOverlay = document.getElementById('startOverlay');
         const startBtn = document.getElementById('startBtn');
-
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
 
         // 보잉 737-800 제원
         const mass = 65000;          
@@ -369,39 +459,39 @@
 
         // 화살표 그리기
         function drawArrow(startX, startY, endX, endY, color, label) {
-            if(Math.abs(startX - endX) < 1 && Math.abs(startY - endY) < 1) return; 
-
-            const headlen = 12; 
+            if(Math.abs(startX - endX) < 1 && Math.abs(startY - endY) < 1) return;
+            const headlen = isMobile ? 9 : 12;
             const dx = endX - startX;
             const dy = endY - startY;
             const angle = Math.atan2(dy, dx);
-            
+
             ctx.beginPath();
             ctx.moveTo(startX, startY);
             ctx.lineTo(endX, endY);
             ctx.strokeStyle = color;
-            ctx.lineWidth = 4;
+            ctx.lineWidth = isMobile ? 3 : 4;
             ctx.stroke();
 
             ctx.beginPath();
             ctx.moveTo(endX, endY);
-            ctx.lineTo(endX - headlen * Math.cos(angle - Math.PI / 6), endY - headlen * Math.sin(angle - Math.PI / 6));
-            ctx.lineTo(endX - headlen * Math.cos(angle + Math.PI / 6), endY - headlen * Math.sin(angle + Math.PI / 6));
+            ctx.lineTo(endX - headlen * Math.cos(angle - Math.PI/6), endY - headlen * Math.sin(angle - Math.PI/6));
+            ctx.lineTo(endX - headlen * Math.cos(angle + Math.PI/6), endY - headlen * Math.sin(angle + Math.PI/6));
             ctx.fillStyle = color;
             ctx.fill();
 
-            ctx.font = "bold 16px Pretendard, sans-serif";
+            ctx.font = isMobile ? "bold 12px Pretendard, sans-serif" : "bold 16px Pretendard, sans-serif";
             ctx.fillStyle = color;
-            const textOffsetX = dx > 0 ? 15 : (dx < 0 ? -45 : -15);
-            const textOffsetY = dy > 0 ? 25 : (dy < 0 ? -15 : 5);
+            const textOffsetX = dx > 0 ? 12 : (dx < 0 ? -38 : -12);
+            const textOffsetY = dy > 0 ? 20 : (dy < 0 ? -12 : 5);
             ctx.fillText(label, endX + textOffsetX, endY + textOffsetY);
         }
 
         function drawAirfoil() {
+            const s = isMobile ? 0.65 : 1.0;
             ctx.beginPath();
-            ctx.moveTo(-70, 0); 
-            ctx.bezierCurveTo(-70, -45, 20, -50, 150, 0); 
-            ctx.bezierCurveTo(40, 10, -50, 20, -70, 0);
+            ctx.moveTo(-70*s, 0);
+            ctx.bezierCurveTo(-70*s, -45*s, 20*s, -50*s, 150*s, 0);
+            ctx.bezierCurveTo(40*s, 10*s, -50*s, 20*s, -70*s, 0);
             ctx.fillStyle = "#334155";
             ctx.fill();
         }
@@ -624,8 +714,10 @@
             altDisplay.innerText = Math.round(altitude).toLocaleString();
             minimapPlane.style.bottom = `${Math.min(100, (altitude / 100000) * 100)}%`;
 
-            const cx = canvas.width / 2;
-            const cy = canvas.height / 2;
+            const cx = canvas.width / DPR / 2;
+            // 모바일: 하단 컨트롤 패널(약 110px) 위로 에어포일 중심 이동
+            const controlsH = isMobile ? 110 : 0;
+            const cy = (canvas.height / DPR - controlsH) / 2;
 
             // ── 배경 오브제 패럴랙스 스크롤 ──
             // 공기입자 기준속도(velocity/8)보다 훨씬 느리게 이동
