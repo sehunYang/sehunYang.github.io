@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>항공기 풍동 시뮬레이션</title>
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --text-main: #0f172a;
+            --text-sub: #64748b;
+            --wing-color: #334155;
+            --lift-color: #3b82f6;   
+            --gravity-color: #94a3b8; 
+            --thrust-color: #10b981;  
+            --drag-color: #ef4444;    
+        }
+
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+        }
+
+        #simulationCanvas { display: block; width: 100%; height: 100%; }
+        .overlay { position: absolute; pointer-events: none; }
+
+        /* 시작 버튼 오버레이 */
+        .start-overlay {
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(8px);
+            display: flex; justify-content: center; align-items: center;
+            pointer-events: auto; z-index: 100;
+        }
+        .start-btn {
+            padding: 16px 36px; font-size: 20px; font-weight: 700;
+            color: #fff; background-color: var(--lift-color);
+            border: none; border-radius: 12px; cursor: pointer;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+            transition: all 0.2s ease;
+        }
+        .start-btn:hover { background-color: #2563eb; transform: translateY(-2px); }
+        .start-btn:active { transform: translateY(0); }
+
+        /* 제목 레이아웃 */
+        .header { top: 40px; left: 0; width: 100%; text-align: center; }
+        h1 { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
+        p.subtitle { margin: 8px 0 0 0; font-size: 15px; color: var(--text-sub); }
+
+        /* 상태 표시 HUD */
+        .hud-status {
+            bottom: 50px; left: 50px; pointer-events: auto; display: flex; flex-direction: column; gap: 20px;
+        }
+        .hud-box { display: flex; flex-direction: column; }
+        .hud-label { font-size: 14px; color: var(--text-sub); margin-bottom: 4px; font-weight: 600; }
+        .hud-val { font-size: 48px; font-weight: 800; line-height: 1; letter-spacing: -1px; }
+        .hud-unit { font-size: 18px; font-weight: 500; color: var(--text-sub); margin-left: 4px; }
+        .alert { color: #ef4444; font-size: 14px; font-weight: bold; margin-top: 5px; opacity: 0; transition: opacity 0.3s;}
+
+        /* 우측 하단 컨트롤러 & 미니맵 컨테이너 */
+        .right-panel {
+            bottom: 50px; right: 50px; width: 300px;
+            display: flex; flex-direction: column; gap: 16px; pointer-events: none;
+        }
+
+        /* 고도 미니맵 */
+        .minimap-wrapper {
+            background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(12px);
+            padding: 20px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.06);
+            border: 1px solid rgba(255,255,255,0.8); pointer-events: auto;
+        }
+        .minimap-title { font-size: 14px; font-weight: 700; margin-bottom: 12px; color: var(--text-main); }
+        .minimap-container { 
+            position: relative; height: 120px; border-left: 3px solid #cbd5e1; 
+            margin-left: 10px; margin-top: 10px; border-radius: 4px;
+            background: linear-gradient(to top,
+                rgba(186,230,253,0.55) 0%,   rgba(186,230,253,0.55) 12%,
+                rgba(165,180,252,0.45) 12%,  rgba(165,180,252,0.45) 50%,
+                rgba(109,40,217,0.28) 50%,   rgba(109,40,217,0.28) 85%,
+                rgba(15,23,42,0.50)   85%,   rgba(15,23,42,0.50)   100%
+            );
+        }
+        .minimap-label { position: absolute; left: 15px; font-size: 11px; color: var(--text-sub); font-weight: 600; white-space: nowrap;}
+        .karman-mark { top: -6px; color: #0f172a;}
+        .cruise-mark { bottom: 10%; transform: translateY(50%); }
+        .ground-mark { bottom: -6px; }
+        .minimap-plane { 
+            position: absolute; left: -7px; width: 11px; height: 11px; 
+            background: var(--lift-color); border-radius: 50%; 
+            box-shadow: 0 0 8px rgba(59,130,246,0.6); 
+            transition: bottom 0.1s linear; bottom: 0%;
+        }
+        .minimap-layer-mark {
+            position: absolute; left: -6px; width: 14px; height: 3px;
+            border-radius: 1.5px; transform: translateY(50%);
+        }
+
+        /* 조작부 */
+        .controls {
+            background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(12px);
+            padding: 28px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.06);
+            border: 1px solid rgba(255,255,255,0.8); pointer-events: auto;
+        }
+        .control-group { margin-bottom: 24px; }
+        .control-group:last-child { margin-bottom: 0; }
+        .control-header { display: flex; justify-content: space-between; margin-bottom: 12px; align-items: flex-end; }
+        .control-name { font-size: 15px; font-weight: 600; }
+        .control-value { font-size: 15px; font-weight: 700; color: var(--lift-color); }
+
+        /* 슬라이더 커스텀 */
+        input { -webkit-appearance: none; width: 100%; background: transparent; }
+        input:focus { outline: none; }
+        input::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 18px; width: 18px; border-radius: 50%;
+            background: var(--lift-color); cursor: pointer; margin-top: -7px;
+            box-shadow: 0 2px 6px rgba(59, 130, 246, 0.4);
+        }
+        input::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #cbd5e1; border-radius: 2px; }
+    </style>
+</head>
+<body>
+
+    <div id="startOverlay" class="start-overlay">
+        <button id="startBtn" class="start-btn">시뮬레이션 시작</button>
+    </div>
+
+    <canvas id="simulationCanvas"></canvas>
+
+    <div class="overlay header">
+        <h1>항공기의 과학을 학습하기 위한 풍동 시뮬레이션</h1>
+        <p class="subtitle">이륙, 고도에 따른 대기 밀도 변화, 유동 박리, 4가지 힘의 상호작용 (Boeing 737-800 모델 기반)</p>
+    </div>
+
+    <div class="overlay hud-status">
+        <div class="hud-box">
+            <div class="hud-label">현재 비행 속력 (Airspeed)</div>
+            <div class="hud-val"><span id="speedDisplay">0</span><span class="hud-unit">km/h</span></div>
+        </div>
+        <div class="hud-box">
+            <div class="hud-label">현재 고도 (Altitude)</div>
+            <div class="hud-val" style="color: var(--lift-color);"><span id="altDisplay">0</span><span class="hud-unit">m</span></div>
+        </div>
+        <div class="hud-box" style="margin-top: -10px;">
+            <div class="hud-label">항력 비례 상태 (Reynolds Number Base)</div>
+            <div id="dragTypeDisplay" style="font-size: 16px; font-weight: bold; color: var(--drag-color);">정지 상태</div>
+        </div>
+        <div id="stallWarning" class="alert">⚠️ 실속(Stall) 발생! 양력 급감 및 유동 박리</div>
+    </div>
+
+    <div class="overlay right-panel">
+        <div class="minimap-wrapper">
+            <div class="minimap-title">고도 미니맵</div>
+            <div class="minimap-container">
+                <div class="minimap-label karman-mark">100km (카르만 라인)</div>
+                <div class="minimap-label" style="bottom:85%;transform:translateY(50%);color:#7c3aed;font-size:10px;">85km 중간권계면</div>
+                <div class="minimap-label" style="bottom:50%;transform:translateY(50%);color:#818cf8;font-size:10px;">50km 성층권계면</div>
+                <div class="minimap-label cruise-mark">10km (평균 운항)</div>
+                <div class="minimap-label" style="bottom:12%;transform:translateY(50%);color:#38bdf8;font-size:10px;">12km 대류권계면</div>
+                <div class="minimap-label ground-mark">0m (지상)</div>
+                <div class="minimap-layer-mark" style="bottom:85%;background:#7c3aed;"></div>
+                <div class="minimap-layer-mark" style="bottom:50%;background:#818cf8;"></div>
+                <div class="minimap-layer-mark" style="bottom:12%;background:#38bdf8;"></div>
+                <div class="minimap-plane" id="minimapPlane"></div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <div class="control-header">
+                    <span class="control-name">추력 (Thrust)</span>
+                    <span class="control-value"><span id="thrustValDisplay">0</span> kN</span>
+                </div>
+                <input type="range" id="thrustSlider" min="0" max="250" step="1" value="0">
+            </div>
+            <div class="control-group">
+                <div class="control-header">
+                    <span class="control-name">받음각 (Angle of Attack)</span>
+                    <span class="control-value"><span id="aoaValDisplay">5</span>°</span>
+                </div>
+                <input type="range" id="aoaSlider" min="-5" max="25" step="0.5" value="5">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('simulationCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const speedDisplay = document.getElementById('speedDisplay');
+        const altDisplay = document.getElementById('altDisplay');
+        const thrustSlider = document.getElementById('thrustSlider');
+        const thrustValDisplay = document.getElementById('thrustValDisplay');
+        const aoaSlider = document.getElementById('aoaSlider');
+        const aoaValDisplay = document.getElementById('aoaValDisplay');
+        const stallWarning = document.getElementById('stallWarning');
+        const dragTypeDisplay = document.getElementById('dragTypeDisplay');
+        const minimapPlane = document.getElementById('minimapPlane');
+        const startOverlay = document.getElementById('startOverlay');
+        const startBtn = document.getElementById('startBtn');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // 보잉 737-800 제원
+        const mass = 65000;          
+        const gravity = mass * 9.81; 
+        const wingArea = 124.6;      
+        const chordLength = 3.96;    
+        const kinematicViscosity = 1.48e-5;    
+        
+        const Re_crit = 5000000; 
+        const v_crit = (Re_crit * kinematicViscosity) / chordLength;
+
+        // ========== 대기층 오브제 데이터 (5배 증가, 크기 확대) ==========
+        const cloudDefs = [
+            // 저층 뭉게구름 (0~2km)
+            {xf:0.04,alt:220,size:2.6},{xf:0.16,alt:380,size:3.0},{xf:0.29,alt:480,size:2.2},
+            {xf:0.43,alt:310,size:2.8},{xf:0.57,alt:560,size:2.4},{xf:0.70,alt:290,size:3.2},
+            {xf:0.83,alt:440,size:2.0},{xf:0.94,alt:620,size:2.5},{xf:0.11,alt:180,size:2.9},
+            {xf:0.24,alt:700,size:2.1},{xf:0.37,alt:850,size:2.7},{xf:0.50,alt:950,size:2.3},
+            {xf:0.63,alt:780,size:3.1},{xf:0.76,alt:1100,size:2.6},{xf:0.88,alt:820,size:2.0},
+            {xf:0.07,alt:1300,size:2.4},{xf:0.21,alt:1500,size:2.8},{xf:0.34,alt:1200,size:2.2},
+            {xf:0.47,alt:1650,size:2.5},{xf:0.60,alt:1400,size:2.0},{xf:0.73,alt:1800,size:2.7},
+            {xf:0.86,alt:1550,size:2.3},{xf:0.13,alt:1750,size:2.6},{xf:0.96,alt:1350,size:2.1},
+            {xf:0.40,alt:1950,size:2.4},
+            // 중층 (2~6km)
+            {xf:0.05,alt:2300,size:2.0},{xf:0.18,alt:2700,size:2.3},{xf:0.30,alt:3000,size:1.9},
+            {xf:0.42,alt:2500,size:2.1},{xf:0.54,alt:3200,size:2.4},{xf:0.66,alt:2800,size:1.8},
+            {xf:0.78,alt:3500,size:2.2},{xf:0.90,alt:2900,size:2.0},{xf:0.08,alt:3800,size:1.9},
+            {xf:0.22,alt:4100,size:2.1},{xf:0.35,alt:3600,size:1.7},{xf:0.48,alt:4400,size:2.0},
+            {xf:0.61,alt:4700,size:1.8},{xf:0.74,alt:4200,size:2.2},{xf:0.87,alt:5000,size:1.9},
+            {xf:0.12,alt:5300,size:1.7},{xf:0.25,alt:4900,size:1.8},{xf:0.38,alt:5600,size:2.0},
+            {xf:0.51,alt:5100,size:1.6},{xf:0.64,alt:5800,size:1.7},{xf:0.77,alt:5400,size:1.9},
+            {xf:0.92,alt:5700,size:1.5},{xf:0.03,alt:5200,size:1.8},{xf:0.17,alt:5900,size:1.6},
+            {xf:0.46,alt:5500,size:1.7},
+            // 고층 권운 (6~12km)
+            {xf:0.06,alt:6400,size:1.4},{xf:0.19,alt:7000,size:1.5},{xf:0.33,alt:6800,size:1.3},
+            {xf:0.46,alt:7500,size:1.4},{xf:0.59,alt:7200,size:1.5},{xf:0.72,alt:8000,size:1.2},
+            {xf:0.85,alt:7700,size:1.3},{xf:0.10,alt:8400,size:1.1},{xf:0.23,alt:8800,size:1.2},
+            {xf:0.36,alt:9100,size:1.0},{xf:0.49,alt:9500,size:1.1},{xf:0.62,alt:9000,size:1.2},
+            {xf:0.75,alt:9700,size:0.9},{xf:0.88,alt:10200,size:0.9},{xf:0.14,alt:10600,size:0.8},
+            {xf:0.28,alt:10900,size:0.8},{xf:0.42,alt:11200,size:0.7},{xf:0.56,alt:10800,size:0.8},
+            {xf:0.69,alt:11500,size:0.7},{xf:0.82,alt:11800,size:0.7},{xf:0.97,alt:11000,size:0.8},
+            {xf:0.01,alt:11600,size:0.7},{xf:0.16,alt:10400,size:0.9},{xf:0.93,alt:11300,size:0.7},
+            {xf:0.02,alt:9800,size:1.0},
+        ];
+        const birdDefs = [
+            {xf:0.05,alt:35,sp:4},{xf:0.12,alt:55,sp:3.5},{xf:0.20,alt:42,sp:5},
+            {xf:0.28,alt:78,sp:3},{xf:0.36,alt:62,sp:4.5},{xf:0.43,alt:92,sp:3.8},
+            {xf:0.51,alt:48,sp:4},{xf:0.58,alt:105,sp:3.2},{xf:0.66,alt:70,sp:4.8},
+            {xf:0.73,alt:38,sp:3.5},{xf:0.80,alt:85,sp:4.2},{xf:0.88,alt:58,sp:3.7},
+            {xf:0.95,alt:120,sp:3.1},{xf:0.08,alt:95,sp:4.3},{xf:0.16,alt:130,sp:3.6},
+            {xf:0.24,alt:145,sp:3.0},{xf:0.32,alt:115,sp:3.9},{xf:0.40,alt:160,sp:3.3},
+            {xf:0.48,alt:140,sp:4.1},{xf:0.56,alt:170,sp:3.4},{xf:0.64,alt:155,sp:4.6},
+            {xf:0.72,alt:185,sp:3.8},{xf:0.79,alt:125,sp:3.2},{xf:0.87,alt:190,sp:4.0},
+            {xf:0.93,alt:108,sp:3.7},{xf:0.04,alt:175,sp:3.5},{xf:0.14,alt:148,sp:4.4},
+            {xf:0.26,alt:200,sp:3.1},{xf:0.38,alt:88,sp:4.7},{xf:0.53,alt:210,sp:3.6},
+        ];
+        const balloonDefs = [
+            {xf:0.07,alt:16000},{xf:0.18,alt:20000},{xf:0.28,alt:25000},
+            {xf:0.38,alt:30000},{xf:0.48,alt:22000},{xf:0.57,alt:35000},
+            {xf:0.67,alt:28000},{xf:0.76,alt:38000},{xf:0.86,alt:32000},
+            {xf:0.95,alt:42000},{xf:0.13,alt:18500},{xf:0.23,alt:26000},
+            {xf:0.33,alt:33000},{xf:0.43,alt:46000},{xf:0.53,alt:24000},
+        ];
+        const meteorDefs = [
+            {xf:0.05,alt:62000,angle:0.55,len:160},{xf:0.13,alt:66000,angle:0.42,len:140},
+            {xf:0.21,alt:70000,angle:0.65,len:190},{xf:0.29,alt:74000,angle:0.38,len:150},
+            {xf:0.37,alt:67000,angle:0.50,len:175},{xf:0.45,alt:78000,angle:0.48,len:165},
+            {xf:0.53,alt:63000,angle:0.58,len:145},{xf:0.61,alt:72000,angle:0.43,len:170},
+            {xf:0.69,alt:80000,angle:0.52,len:155},{xf:0.77,alt:68000,angle:0.47,len:180},
+            {xf:0.85,alt:75000,angle:0.62,len:160},{xf:0.92,alt:82000,angle:0.40,len:140},
+            {xf:0.09,alt:64000,angle:0.53,len:155},{xf:0.17,alt:76000,angle:0.67,len:170},
+            {xf:0.25,alt:84000,angle:0.45,len:185},{xf:0.34,alt:61000,angle:0.56,len:150},
+            {xf:0.42,alt:79000,angle:0.44,len:165},{xf:0.50,alt:65000,angle:0.60,len:175},
+            {xf:0.58,alt:83000,angle:0.49,len:145},{xf:0.66,alt:71000,angle:0.57,len:160},
+            {xf:0.74,alt:77000,angle:0.41,len:170},{xf:0.82,alt:69000,angle:0.63,len:155},
+            {xf:0.90,alt:85000,angle:0.46,len:140},{xf:0.97,alt:73000,angle:0.54,len:165},
+            {xf:0.03,alt:81000,angle:0.51,len:180},{xf:0.11,alt:62500,angle:0.59,len:150},
+            {xf:0.19,alt:70500,angle:0.44,len:175},{xf:0.27,alt:78500,angle:0.66,len:160},
+            {xf:0.36,alt:66500,angle:0.48,len:145},{xf:0.44,alt:84500,angle:0.42,len:190},
+        ];
+        const starDefs = [
+            {xf:0.02,alt:86000,r:2.2},{xf:0.07,alt:91000,r:1.8},{xf:0.12,alt:88500,r:2.5},
+            {xf:0.17,alt:94000,r:1.9},{xf:0.22,alt:89000,r:2.1},{xf:0.27,alt:96500,r:1.7},
+            {xf:0.32,alt:86500,r:2.3},{xf:0.37,alt:92500,r:1.8},{xf:0.42,alt:87500,r:2.0},
+            {xf:0.47,alt:95500,r:2.2},{xf:0.52,alt:90500,r:1.9},{xf:0.57,alt:88000,r:2.4},
+            {xf:0.62,alt:93500,r:1.7},{xf:0.67,alt:99000,r:1.8},{xf:0.72,alt:87000,r:2.1},
+            {xf:0.77,alt:91500,r:1.9},{xf:0.82,alt:89500,r:2.3},{xf:0.87,alt:97000,r:1.7},
+            {xf:0.92,alt:86000,r:2.0},{xf:0.97,alt:94500,r:1.8},{xf:0.05,alt:98000,r:1.9},
+            {xf:0.10,alt:92000,r:2.2},{xf:0.15,alt:87000,r:1.8},{xf:0.20,alt:95000,r:2.0},
+            {xf:0.25,alt:90000,r:2.4},{xf:0.30,alt:86500,r:1.7},{xf:0.35,alt:93000,r:2.1},
+            {xf:0.40,alt:98500,r:1.9},{xf:0.45,alt:88500,r:2.3},{xf:0.50,alt:96000,r:1.8},
+            {xf:0.55,alt:91000,r:2.0},{xf:0.60,alt:87500,r:2.2},{xf:0.65,alt:94000,r:1.8},
+            {xf:0.70,alt:99500,r:2.1},{xf:0.75,alt:89000,r:2.3},{xf:0.80,alt:95500,r:1.9},
+            {xf:0.85,alt:90500,r:2.0},{xf:0.90,alt:86000,r:2.4},{xf:0.95,alt:92500,r:1.8},
+            {xf:0.03,alt:97500,r:2.2},{xf:0.08,alt:88000,r:1.9},{xf:0.13,alt:93500,r:2.1},
+            {xf:0.18,alt:99000,r:1.7},{xf:0.23,alt:91500,r:2.3},{xf:0.28,alt:87500,r:2.0},
+            {xf:0.33,alt:96500,r:1.8},{xf:0.38,alt:90000,r:2.2},{xf:0.43,alt:85500,r:1.9},
+            {xf:0.48,alt:94500,r:2.1},{xf:0.53,alt:89500,r:2.3},{xf:0.58,alt:98000,r:1.7},
+            {xf:0.63,alt:92000,r:2.0},{xf:0.68,alt:87000,r:2.4},{xf:0.73,alt:95000,r:1.8},
+            {xf:0.78,alt:91000,r:2.1},{xf:0.83,alt:86500,r:1.9},{xf:0.88,alt:93000,r:2.2},
+            {xf:0.93,alt:97500,r:1.8},{xf:0.98,alt:89000,r:2.0},{xf:0.01,alt:99500,r:2.3},
+            {xf:0.06,alt:85800,r:1.9},{xf:0.11,alt:96000,r:2.1},{xf:0.16,alt:91500,r:1.7},
+            {xf:0.21,alt:88000,r:2.2},{xf:0.26,alt:94000,r:1.9},{xf:0.31,alt:89500,r:2.0},
+            {xf:0.36,alt:97000,r:2.3},{xf:0.41,alt:86500,r:1.8},{xf:0.46,alt:93000,r:2.1},
+            {xf:0.51,alt:90000,r:2.4},{xf:0.56,alt:87500,r:1.9},{xf:0.61,alt:95500,r:2.0},
+            {xf:0.66,alt:92500,r:1.8},{xf:0.71,alt:86000,r:2.2},{xf:0.76,alt:98500,r:1.7},
+            {xf:0.81,alt:91000,r:2.3},{xf:0.86,alt:88500,r:1.9},{xf:0.91,alt:94000,r:2.1},
+            {xf:0.96,alt:89000,r:2.0},{xf:0.04,alt:97000,r:1.8},{xf:0.09,alt:93500,r:2.2},
+            {xf:0.14,alt:85500,r:1.9},{xf:0.19,alt:92000,r:2.1},{xf:0.24,alt:99000,r:1.7},
+            {xf:0.29,alt:87000,r:2.3},{xf:0.34,alt:95000,r:1.8},{xf:0.39,alt:90500,r:2.0},
+            {xf:0.44,alt:86500,r:2.2},{xf:0.49,alt:93000,r:1.9},{xf:0.54,alt:88500,r:2.1},
+            {xf:0.59,alt:96500,r:1.8},{xf:0.64,alt:91000,r:2.0},{xf:0.69,alt:87500,r:2.3},
+        ];
+
+        // 物理시뮬레이션 변수
+        let isRunning = false;     
+        let velocity = 0;          
+        let thrust = 0;          
+        let aoa = 5;                 
+        let altitude = 0;          
+        let verticalVelocity = 0;  
+
+        let lift = 0;                
+        let drag = 0;                
+        let lastTime = 0;
+
+        // ── 배경 스크롤 상태 ──
+        let groundScrollX = 0;
+        let issX = window.innerWidth * 0.72;
+
+        // 원래 위치 복원 (화면 내 xf 기준)
+        cloudDefs.forEach(o   => { o.x = o.xf * window.innerWidth; });
+        birdDefs.forEach(o    => { o.x = o.xf * window.innerWidth; });
+        balloonDefs.forEach(o => { o.x = o.xf * window.innerWidth; });
+        meteorDefs.forEach(o  => { o.x = o.xf * window.innerWidth; });
+        starDefs.forEach(o    => { o.x = o.xf * window.innerWidth; });
+
+        // 화면 밖 왼쪽(-W ~ 0)에 각 레이어 복사본 추가 배치 → 시작 즉시 끊김 없이 흘러들어옴
+        const W0 = window.innerWidth;
+        cloudDefs.forEach(o   => { cloudDefs.push({...o,   x: o.x - W0}); });
+        birdDefs.forEach(o    => { birdDefs.push({...o,    x: o.x - W0}); });
+        balloonDefs.forEach(o => { balloonDefs.push({...o, x: o.x - W0}); });
+        meteorDefs.forEach(o  => { meteorDefs.push({...o,  x: o.x - W0}); });
+        starDefs.forEach(o    => { starDefs.push({...o,    x: o.x - W0}); });
+
+        // 입자 초기 설정
+        const particles =[];
+        const numParticles = 233; 
+        
+        for (let i = 0; i < numParticles; i++) {
+            const startY = Math.random() * window.innerHeight;
+            particles.push({
+                x: Math.random() * window.innerWidth,
+                yStart: startY,
+                y: startY,
+                speedOffset: 0.7 + Math.random() * 0.6,
+                radius: 1.5 + Math.random() * 1.5,
+                history:[]
+            });
+        }
+
+        // 화살표 그리기
+        function drawArrow(startX, startY, endX, endY, color, label) {
+            if(Math.abs(startX - endX) < 1 && Math.abs(startY - endY) < 1) return; 
+
+            const headlen = 12; 
+            const dx = endX - startX;
+            const dy = endY - startY;
+            const angle = Math.atan2(dy, dx);
+            
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+            ctx.lineTo(endX, endY);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 4;
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(endX, endY);
+            ctx.lineTo(endX - headlen * Math.cos(angle - Math.PI / 6), endY - headlen * Math.sin(angle - Math.PI / 6));
+            ctx.lineTo(endX - headlen * Math.cos(angle + Math.PI / 6), endY - headlen * Math.sin(angle + Math.PI / 6));
+            ctx.fillStyle = color;
+            ctx.fill();
+
+            ctx.font = "bold 16px Pretendard, sans-serif";
+            ctx.fillStyle = color;
+            const textOffsetX = dx > 0 ? 15 : (dx < 0 ? -45 : -15);
+            const textOffsetY = dy > 0 ? 25 : (dy < 0 ? -15 : 5);
+            ctx.fillText(label, endX + textOffsetX, endY + textOffsetY);
+        }
+
+        function drawAirfoil() {
+            ctx.beginPath();
+            ctx.moveTo(-70, 0); 
+            ctx.bezierCurveTo(-70, -45, 20, -50, 150, 0); 
+            ctx.bezierCurveTo(40, 10, -50, 20, -70, 0);
+            ctx.fillStyle = "#334155";
+            ctx.fill();
+        }
+
+        // ========== 대기층 오브제 드로잉 함수 ==========
+        function drawCloud(x, y, size, opacity, color='#ffffff') {
+            const r = 20 * size;
+            ctx.save();
+            ctx.globalAlpha = opacity;
+            ctx.fillStyle = color;
+            ctx.shadowColor = 'rgba(148,163,184,0.4)';
+            ctx.shadowBlur = 10;
+            [[0,0,1],[0.9,0.25,0.75],[-0.8,0.2,0.78],[0.35,-0.42,0.68],[-0.28,-0.38,0.62]].forEach(([dx,dy,rs]) => {
+                ctx.beginPath(); ctx.arc(x+dx*r, y+dy*r, r*rs, 0, Math.PI*2); ctx.fill();
+            });
+            ctx.restore();
+        }
+
+        function drawBird(x, y, sp=4) {
+            ctx.save();
+            const s = sp;
+            ctx.strokeStyle = 'rgba(51,65,85,0.72)'; ctx.lineWidth = 2; ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(x-s*2,y); ctx.quadraticCurveTo(x-s,y-s*1.3,x,y);
+            ctx.moveTo(x,y);     ctx.quadraticCurveTo(x+s,y-s*1.3,x+s*2,y);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawBalloon(x, y) {
+            ctx.save();
+            const R = 22;
+            const gr = ctx.createRadialGradient(x-5,y-6,3,x,y,R);
+            gr.addColorStop(0,'#fef9c3'); gr.addColorStop(1,'#f59e0b');
+            ctx.fillStyle = gr;
+            ctx.beginPath(); ctx.arc(x,y,R,0,Math.PI*2); ctx.fill();
+            ctx.strokeStyle = '#d97706'; ctx.lineWidth = 1.5; ctx.stroke();
+            // 세로줄 장식
+            ctx.strokeStyle = 'rgba(180,83,9,0.3)'; ctx.lineWidth = 1;
+            [-8,0,8].forEach(dx => {
+                ctx.beginPath(); ctx.moveTo(x+dx,y-R); ctx.lineTo(x+dx,y+R); ctx.stroke();
+            });
+            // 줄
+            ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 1.2;
+            ctx.beginPath(); ctx.moveTo(x-5,y+R); ctx.lineTo(x-9,y+R+55); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x+5,y+R); ctx.lineTo(x+9,y+R+55); ctx.stroke();
+            // 곤돌라
+            ctx.fillStyle = '#e2e8f0'; ctx.fillRect(x-11,y+R+55,22,11);
+            ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 1; ctx.strokeRect(x-11,y+R+55,22,11);
+            ctx.restore();
+        }
+
+        function drawMeteor(x, y, angle, len) {
+            ctx.save();
+            ctx.translate(x,y); ctx.rotate(angle);
+            const tail = ctx.createLinearGradient(0,0,len,0);
+            tail.addColorStop(0,'rgba(255,255,200,0.95)');
+            tail.addColorStop(0.4,'rgba(255,180,80,0.6)');
+            tail.addColorStop(1,'rgba(255,100,30,0)');
+            ctx.strokeStyle = tail; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+            ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(len,0); ctx.stroke();
+            const glow = ctx.createRadialGradient(0,0,0,0,0,7);
+            glow.addColorStop(0,'rgba(255,255,255,1)'); glow.addColorStop(1,'rgba(255,180,80,0)');
+            ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(0,0,7,0,Math.PI*2); ctx.fill();
+            ctx.restore();
+        }
+
+        function drawAurora(gY, scale, t) {
+            const yTop = gY - 100000*scale, yBot = gY - 85000*scale;
+            const cTop = Math.max(0,yTop), cBot = Math.min(canvas.height,yBot);
+            if (cBot <= cTop) return;
+            const W = canvas.width;
+            const bands = [
+                {c:'52,211,153',phase:0},{c:'99,102,241',phase:1.7},{c:'167,139,250',phase:3.2},
+            ];
+            for (const band of bands) {
+                for (let ci = 0; ci < 4; ci++) {
+                    const bx = W*(ci+0.5)/4 + Math.sin(t*0.35+band.phase+ci*1.1)*25;
+                    const bw = W/4*0.85;
+                    const alpha = 0.12 + 0.08*Math.sin(t*0.7+band.phase+ci*0.9);
+                    const g = ctx.createLinearGradient(bx-bw/2,0,bx+bw/2,0);
+                    g.addColorStop(0,`rgba(${band.c},0)`);
+                    g.addColorStop(0.5,`rgba(${band.c},${alpha.toFixed(3)})`);
+                    g.addColorStop(1,`rgba(${band.c},0)`);
+                    const wave = Math.sin(t*0.5+band.phase+ci)*10;
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.moveTo(bx-bw/2+wave,cTop); ctx.lineTo(bx+bw/2+wave,cTop);
+                    ctx.lineTo(bx+bw/2,cBot);      ctx.lineTo(bx-bw/2,cBot);
+                    ctx.closePath(); ctx.fillStyle = g; ctx.fill();
+                    ctx.restore();
+                }
+            }
+        }
+
+        function drawISS(x, y) {
+            ctx.save();
+            ctx.fillStyle = '#94a3b8';
+            ctx.fillRect(x-58,y-1.5,116,3);
+            ctx.fillStyle = '#cbd5e1'; ctx.fillRect(x-20,y-7,40,14);
+            [[x-58,y-9,24,7],[x-58,y+2,24,7],[x+34,y-9,24,7],[x+34,y+2,24,7]].forEach(([px,py,pw,ph]) => {
+                ctx.fillStyle='#1d4ed8'; ctx.fillRect(px,py,pw,ph);
+                ctx.strokeStyle='#60a5fa'; ctx.lineWidth=0.5;
+                [1,2].forEach(gi=>{
+                    ctx.beginPath(); ctx.moveTo(px+pw*gi/3,py); ctx.lineTo(px+pw*gi/3,py+ph); ctx.stroke();
+                });
+            });
+            ctx.restore();
+        }
+
+        function drawAtmosphericObjects(gY, scale, t) {
+            const W = canvas.width;
+            // 구름 (대류권 0~12km)
+            for (const c of cloudDefs) {
+                const y = gY - c.alt*scale;
+                if (y < -80 || y > canvas.height+80) continue;
+                drawCloud(c.x, y, c.size, c.alt > 8000 ? 0.55 : 0.82, '#ffffff');
+            }
+            // 새 (지상 근처)
+            for (const b of birdDefs) {
+                const y = gY - b.alt*scale;
+                if (y < 0 || y > canvas.height) continue;
+                drawBird(b.x, y, b.sp || 4);
+            }
+            // 기상 관측 기구 (성층권)
+            for (const bal of balloonDefs) {
+                const y = gY - bal.alt*scale;
+                if (y < -60 || y > canvas.height+60) continue;
+                drawBalloon(bal.x, y);
+            }
+            // 유성 (중간권)
+            for (const m of meteorDefs) {
+                const y = gY - m.alt*scale;
+                if (y < -40 || y > canvas.height+40) continue;
+                drawMeteor(m.x, y, m.angle, m.len);
+            }
+            // 오로라 (열권)
+            drawAurora(gY, scale, t);
+            // 별 (열권)
+            for (const s of starDefs) {
+                const y = gY - s.alt*scale;
+                if (y < 0 || y > canvas.height) continue;
+                const twinkle = 0.5 + 0.5*Math.sin(t*3+s.xf*20);
+                ctx.beginPath(); ctx.arc(s.x, y, s.r, 0, Math.PI*2);
+                ctx.fillStyle = `rgba(255,255,255,${twinkle.toFixed(2)})`; ctx.fill();
+            }
+            // ISS (열권 상단 ~96km)
+            const issY = gY - 96000*scale;
+            if (issY > 0 && issY < canvas.height) drawISS(issX, issY);
+        }
+
+        // 대기층 경계마다 입자 수가 절반이 되는 연속 지수 감쇠 함수
+        // (정규화: 20개 5km 밴드의 합 = 233, 고도 0 기준)
+        const ATM_NORM = 233;
+        function atmDensity(alt) {
+            const LN2 = Math.LN2;
+            if (alt < 12000)  return               Math.exp(-4*LN2 / 12000 * alt);         // 0→12km: ÷16
+            if (alt < 50000)  return (1/16) *      Math.exp(-2*LN2 / 38000 * (alt - 12000)); // 12→50km: ÷4
+            if (alt < 85000)  return (1/64) *      Math.exp(  -LN2 / 35000 * (alt - 50000)); // 50→85km: ÷2
+            return                   (1/128)*      Math.exp(  -LN2 / 15000 * (alt - 85000)); // 85km~
+        }
+
+        // 메인 애니메이션 루프
+        function animate(time) {
+            if (!lastTime) lastTime = time;
+            const deltaTime = isRunning ? (time - lastTime) / 1000 : 0;
+            lastTime = time;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            thrust = thrustSlider.value * 1000;
+            aoa = parseFloat(aoaSlider.value);
+            thrustValDisplay.innerText = thrustSlider.value;
+            aoaValDisplay.innerText = aoa;
+
+            const isStall = aoa > 15;
+            stallWarning.style.opacity = isStall ? 1 : 0;
+
+            const currentAirDensity = 1.225 * Math.exp(-altitude / 8500);
+
+            // 물리 연산 파트
+            let Cl = 0;
+            if (!isStall) {
+                Cl = 0.1 * aoa + 0.2; 
+            } else {
+                const Cl_max = 0.1 * 15 + 0.2; 
+                Cl = Cl_max * Math.exp(-(aoa - 15) * 0.5); 
+            }
+            let Cd = 0.02 + 0.05 * Cl * Cl; 
+
+            const q_newton = 0.5 * currentAirDensity * velocity * velocity; 
+            const q_crit = 0.5 * currentAirDensity * v_crit * v_crit;       
+            
+            lift = q_newton * wingArea * Cl;
+
+            if (velocity === 0) {
+                dragTypeDisplay.innerText = "정지 상태";
+                drag = 0;
+            } else if (velocity < v_crit) {
+                dragTypeDisplay.innerText = "속력에 비례 (층류/천이 구간)";
+                const dragAtCrit = q_crit * wingArea * Cd;
+                drag = dragAtCrit * (velocity / v_crit); 
+            } else {
+                dragTypeDisplay.innerText = "속력의 제곱에 비례 (난류 구간)";
+                drag = q_newton * wingArea * Cd; 
+            }
+
+            const horizontalAccel = (thrust - drag) / mass;
+            velocity += horizontalAccel * deltaTime;
+            if (velocity < 0) velocity = 0;
+
+            const verticalAccel = (lift - gravity) / mass;
+            verticalVelocity += verticalAccel * deltaTime;
+            altitude += verticalVelocity * deltaTime;
+
+            if (altitude <= 0) { altitude = 0; if (verticalVelocity < 0) verticalVelocity = 0; }
+            if (altitude >= 100000) { altitude = 100000; if (verticalVelocity > 0) verticalVelocity = 0; }
+
+            speedDisplay.innerText = Math.round(velocity * 3.6);
+            altDisplay.innerText = Math.round(altitude).toLocaleString();
+            minimapPlane.style.bottom = `${Math.min(100, (altitude / 100000) * 100)}%`;
+
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+
+            // ── 배경 오브제 패럴랙스 스크롤 ──
+            // 공기입자 기준속도(velocity/8)보다 훨씬 느리게 이동
+            // 레이어별 패럴랙스 계수 (작을수록 느림 = 더 멀리 있음)
+            if (isRunning) {
+                const P_STAR    = 0.060;   // 별 / 유성
+                const P_BALLOON = 0.164;   // 기상 기구
+                const P_CLOUD_H = 0.239;   // 고층 권운
+                const P_CLOUD_L = 0.478;   // 저층 뭉게구름
+                const P_BIRD    = 0.716;   // 새
+                const P_GROUND  = 1.000;   // 지면 패턴
+
+                const dx_star    = velocity * deltaTime * P_STAR;
+                const dx_balloon = velocity * deltaTime * P_BALLOON;
+                const dx_cloudH  = velocity * deltaTime * P_CLOUD_H;
+                const dx_cloudL  = velocity * deltaTime * P_CLOUD_L;
+                const dx_bird    = velocity * deltaTime * P_BIRD;
+                const dx_ground  = velocity * deltaTime * P_GROUND;
+
+                // 별 & 유성 (오른쪽 이탈 → 즉시 왼쪽 끝에서 동일 alt로 재생성)
+                for (const s of starDefs) {
+                    s.x += dx_star;
+                    if (s.x > canvas.width + 20) s.x = -20;
+                }
+                for (const m of meteorDefs) {
+                    m.x += dx_star;
+                    if (m.x > canvas.width + m.len) m.x = -m.len;
+                }
+                // ISS
+                issX += dx_star;
+                if (issX > canvas.width + 80) issX = -80;
+
+                // 기구
+                for (const bal of balloonDefs) {
+                    bal.x += dx_balloon;
+                    if (bal.x > canvas.width + 60) bal.x = -60;
+                }
+
+                // 구름
+                for (const c of cloudDefs) {
+                    const dx = c.alt >= 6000 ? dx_cloudH : dx_cloudL;
+                    c.x += dx;
+                    const margin = c.size * 40;
+                    if (c.x > canvas.width + margin) c.x = -margin;
+                }
+
+                // 새
+                for (const b of birdDefs) {
+                    b.x += dx_bird;
+                    if (b.x > canvas.width + 30) b.x = -30;
+                }
+
+                // 지면 패턴
+                groundScrollX -= dx_ground;
+            }
+
+            // ========== 배경 그래픽 렌더링 ==========
+            const visualScale = 0.2;
+            const groundY = cy + (altitude * visualScale);
+            const karmanY = groundY - 100000 * visualScale;
+
+            // 1. 대기층 배경색 밴드
+            const layerBands = [
+                { bottom:0,     top:12000,  color:'rgba(186,230,253,0.22)' },
+                { bottom:12000, top:50000,  color:'rgba(165,180,252,0.18)' },
+                { bottom:50000, top:85000,  color:'rgba(109,40,217,0.17)'  },
+                { bottom:85000, top:110000, color:'rgba(15,23,42,0.42)'    },
+            ];
+            for (const lb of layerBands) {
+                const yT = Math.max(0, groundY - lb.top*visualScale);
+                const yB = Math.min(canvas.height, groundY - lb.bottom*visualScale);
+                if (yB > yT) { ctx.fillStyle = lb.color; ctx.fillRect(0,yT,canvas.width,yB-yT); }
+            }
+
+            // 2. 오존층 시각화 (성층권 25~35km, 연한 연두빛)
+            {
+                const yT = Math.max(0, groundY - 35000*visualScale);
+                const yB = Math.min(canvas.height, groundY - 25000*visualScale);
+                if (yB > yT) {
+                    const og = ctx.createLinearGradient(0,yT,0,yB);
+                    og.addColorStop(0,'rgba(163,230,53,0)');
+                    og.addColorStop(0.5,'rgba(163,230,53,0.09)');
+                    og.addColorStop(1,'rgba(163,230,53,0)');
+                    ctx.fillStyle = og; ctx.fillRect(0,yT,canvas.width,yB-yT);
+                }
+            }
+
+            // 3. 대기층 특성 오브제 렌더링
+            drawAtmosphericObjects(groundY, visualScale, time);
+
+            // 4. 대기층 경계 점선 + 라벨 (우측 정렬)
+            const layerBoundaries = [
+                { alt:12000, color:'#38bdf8', label:'◈ 대류권계면 (Tropopause)  12km' },
+                { alt:50000, color:'#818cf8', label:'◈ 성층권계면 (Stratopause)  50km' },
+                { alt:85000, color:'#7c3aed', label:'◈ 중간권계면  (Mesopause)   85km' },
+            ];
+            ctx.textAlign = 'right';
+            for (const lb of layerBoundaries) {
+                const lbY = groundY - lb.alt*visualScale;
+                if (lbY < -20 || lbY > canvas.height+20) continue;
+                ctx.setLineDash([10,7]);
+                ctx.beginPath(); ctx.moveTo(0,lbY); ctx.lineTo(canvas.width,lbY);
+                ctx.strokeStyle = lb.color; ctx.lineWidth = 1.5; ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.fillStyle = lb.color; ctx.font = 'bold 12px Pretendard, sans-serif';
+                ctx.fillText(lb.label, canvas.width - 20, lbY - 7);
+            }
+            ctx.textAlign = 'left';
+
+            // 5. 카르만 라인 (실선)
+            if (karmanY > -20 && karmanY < canvas.height+20) {
+                ctx.beginPath(); ctx.moveTo(0,karmanY); ctx.lineTo(canvas.width,karmanY);
+                ctx.strokeStyle = '#312e81'; ctx.lineWidth = 2.5; ctx.stroke();
+                ctx.fillStyle = '#312e81'; ctx.font = 'bold 13px Pretendard, sans-serif';
+                ctx.textAlign = 'right';
+                ctx.fillText('우주 경계: 카르만 라인 (100,000m)', canvas.width - 20, karmanY - 8);
+                ctx.textAlign = 'left';
+            }
+
+            // 6. 지상 아래 — 갈색 땅 레이어
+            if (groundY < canvas.height + 200) {
+                const gBottom = canvas.height;
+                const gTop    = Math.max(0, groundY);
+
+                // 표토 (topsoil): 진한 갈색
+                const soilDepth1 = Math.min(60, gBottom - gTop);
+                if (soilDepth1 > 0) {
+                    const sg1 = ctx.createLinearGradient(0, gTop, 0, gTop + soilDepth1);
+                    sg1.addColorStop(0, '#78401a');
+                    sg1.addColorStop(1, '#8B4513');
+                    ctx.fillStyle = sg1;
+                    ctx.fillRect(0, gTop, canvas.width, soilDepth1);
+                }
+                // 심토 (subsoil): 주황빛 황토색
+                const soilStart2 = gTop + soilDepth1;
+                const soilDepth2 = Math.min(80, gBottom - soilStart2);
+                if (soilDepth2 > 0) {
+                    const sg2 = ctx.createLinearGradient(0, soilStart2, 0, soilStart2 + soilDepth2);
+                    sg2.addColorStop(0, '#8B4513');
+                    sg2.addColorStop(1, '#a0522d');
+                    ctx.fillStyle = sg2;
+                    ctx.fillRect(0, soilStart2, canvas.width, soilDepth2);
+                }
+                // 기반암 (bedrock): 회갈색
+                const soilStart3 = soilStart2 + soilDepth2;
+                if (soilStart3 < gBottom) {
+                    const sg3 = ctx.createLinearGradient(0, soilStart3, 0, gBottom);
+                    sg3.addColorStop(0, '#a0522d');
+                    sg3.addColorStop(1, '#6b3a1f');
+                    ctx.fillStyle = sg3;
+                    ctx.fillRect(0, soilStart3, canvas.width, gBottom - soilStart3);
+                }
+
+                // 잔디 줄기 + 풀잎 (지표면 위)
+                const grassY = groundY;
+                if (grassY > 0 && grassY < canvas.height) {
+                    // 잔디 배경 띠
+                    ctx.fillStyle = '#4a7c3f';
+                    ctx.fillRect(0, grassY - 6, canvas.width, 10);
+                    // 풀잎 삼각형들 (groundScrollX로 스크롤)
+                    const gOff = groundScrollX % 14;
+                    ctx.fillStyle = '#5a9148';
+                    for (let gx = -gOff; gx < canvas.width + 14; gx += 14) {
+                        const h = 8 + (Math.round(gx + groundScrollX) % 5) * 2;
+                        ctx.beginPath();
+                        ctx.moveTo(gx, grassY);
+                        ctx.lineTo(gx + 7, grassY);
+                        ctx.lineTo(gx + 3, grassY - h);
+                        ctx.closePath(); ctx.fill();
+                    }
+                    ctx.fillStyle = '#3d6b34';
+                    for (let gx = 7 - gOff; gx < canvas.width + 14; gx += 14) {
+                        const h = 6 + (Math.round(gx + groundScrollX) % 4) * 2;
+                        ctx.beginPath();
+                        ctx.moveTo(gx, grassY);
+                        ctx.lineTo(gx + 7, grassY);
+                        ctx.lineTo(gx + 4, grassY - h);
+                        ctx.closePath(); ctx.fill();
+                    }
+                    // 지표면 실선
+                    ctx.beginPath(); ctx.moveTo(0, grassY); ctx.lineTo(canvas.width, grassY);
+                    ctx.strokeStyle = '#2d5a27'; ctx.lineWidth = 3; ctx.stroke();
+                }
+
+                // 지층 구분선
+                [[gTop + soilDepth1, 'rgba(90,50,15,0.35)'],
+                 [gTop + soilDepth1 + soilDepth2, 'rgba(70,40,12,0.25)']].forEach(([ly, col]) => {
+                    if (ly > gTop && ly < gBottom) {
+                        ctx.setLineDash([18, 10]);
+                        ctx.beginPath(); ctx.moveTo(0, ly); ctx.lineTo(canvas.width, ly);
+                        ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.stroke();
+                        ctx.setLineDash([]);
+                    }
+                });
+
+                ctx.fillStyle = '#3d2b0e'; ctx.font = 'bold 13px Pretendard, sans-serif';
+                ctx.fillText('지상 (0m)', 20, Math.min(groundY + 22, canvas.height - 8));
+            }
+
+            // 공기 입자 연산 및 렌더링
+            for (let p of particles) {
+                const relX = p.x - cx;
+                const relY = p.y - cy;  // 에어포일 중심까지의 Y거리
+
+                // 2D 가우시안: X방향 σ=130, Y방향 σ=65 → 에어포일 근처에서만 경로 편향
+                const bumpX = Math.exp(-(relX * relX) / (130 * 130));
+                const bumpY = Math.exp(-(relY * relY) / (65 * 65));
+                const bump  = bumpX * bumpY;
+
+                let targetY = p.yStart;
+                let speedMultiplier = 1.0;
+                let downwash = 0;
+
+                if (relX > 0) downwash = (relX / 100) * Cl * 40 * Math.exp(-(relX * relX) / (300 * 300)) * bumpY;
+
+                if (p.yStart < cy) {
+                    if (isStall && relX > -50) {
+                        targetY -= bump * 10; targetY -= (relX + 50) * 0.3; 
+                        p.y += (Math.random() - 0.5) * 12; speedMultiplier = 0.4 + Math.random() * 0.6; 
+                    } else {
+                        targetY -= bump * 70; targetY += downwash;
+                        speedMultiplier = 1.0 + bump * 0.4 * (1 + aoa / 20); 
+                    }
+                } else {
+                    targetY += bump * 40; targetY += downwash;
+                    speedMultiplier = 1.0 - bump * 0.2 * (1 - aoa / 20);
+                }
+
+                if (isRunning) {
+                    p.y += (targetY - p.y) * (isStall && p.yStart < cy && relX > -50 ? 0.05 : 0.2);
+                    const baseSpeed = (velocity / 8) * p.speedOffset;
+                    p.x += baseSpeed * speedMultiplier;
+
+                    if (velocity > 0) {
+                        p.history.push({x: p.x, y: p.y});
+                        if (p.history.length > 15) p.history.shift(); 
+                    }
+                }
+
+                // 공기 밀도 기반 입자 재생성 제어
+                if (p.x > canvas.width) {
+                    const particleAlt = Math.max(0, (groundY - p.yStart) / visualScale);
+                    const band = Math.floor(particleAlt / 5000);
+                    const bandAltMin = band * 5000;
+                    const bandAltMax = bandAltMin + 5000;
+                    const bandMidAlt = bandAltMin + 2500;
+
+                    let countInBand = 0;
+                    for (const q of particles) {
+                        if (q.x > -500 && q.x < canvas.width + 100) {
+                            const qAlt = Math.max(0, (groundY - q.yStart) / visualScale);
+                            if (qAlt >= bandAltMin && qAlt < bandAltMax) countInBand++;
+                        }
+                    }
+
+                    const allowedInBand = Math.round(ATM_NORM * atmDensity(bandMidAlt));
+
+                    if (countInBand < allowedInBand) {
+                        p.x = -(60 + Math.random() * 60);
+                        p.history = [];
+                    } else {
+                        p.x = -9999;
+                        p.history = [];
+                    }
+                }
+
+                // 비활성 입자 재활성화
+                if (p.x === -9999) {
+                    const particleAlt = Math.max(0, (groundY - p.yStart) / visualScale);
+                    const band = Math.floor(particleAlt / 5000);
+                    const bandAltMin = band * 5000;
+                    const bandAltMax = bandAltMin + 5000;
+                    const bandMidAlt = bandAltMin + 2500;
+
+                    let countInBand = 0;
+                    for (const q of particles) {
+                        if (q.x > -500 && q.x < canvas.width + 100) {
+                            const qAlt = Math.max(0, (groundY - q.yStart) / visualScale);
+                            if (qAlt >= bandAltMin && qAlt < bandAltMax) countInBand++;
+                        }
+                    }
+
+                    const allowedInBand = Math.round(ATM_NORM * atmDensity(bandMidAlt));
+                    if (countInBand < allowedInBand) {
+                        p.x = -(60 + Math.random() * 60);
+                        p.y = p.yStart;
+                        p.history = [];
+                    }
+                }
+
+                // 배열의 인덱스 과 를 명확하게 명시
+                if (p.history.length > 1) {
+                    ctx.beginPath();
+                    ctx.moveTo(p.history[0].x, p.history[0].y); // 배열의 0번째 인덱스
+                    for (let i = 1; i < p.history.length; i++) {
+                        ctx.lineTo(p.history[i].x, p.history[i].y); // 배열의 i번째 인덱스
+                    }
+                    ctx.strokeStyle = "rgba(148, 163, 184, 0.35)"; 
+                    ctx.lineWidth = p.radius * 1.5;
+                    ctx.lineCap = "round";
+                    ctx.lineJoin = "round";
+                    ctx.stroke();
+                }
+
+                // 정지 상태라도 현재 위치의 점은 보이도록 렌더링
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fillStyle = "rgba(100, 116, 139, 0.9)";
+                ctx.fill();
+            }
+
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(aoa * Math.PI / 180); 
+            drawAirfoil();
+            ctx.restore();
+
+            // ── 지면 재렌더링: 파티클 위를 덮어 지하 입자를 가림 ──
+            if (groundY < canvas.height + 200) {
+                const gBottom = canvas.height;
+                const gTop    = Math.max(0, groundY);
+                const soilDepth1 = Math.min(60, gBottom - gTop);
+                if (soilDepth1 > 0) {
+                    const sg1 = ctx.createLinearGradient(0,gTop,0,gTop+soilDepth1);
+                    sg1.addColorStop(0,'#78401a'); sg1.addColorStop(1,'#8B4513');
+                    ctx.fillStyle=sg1; ctx.fillRect(0,gTop,canvas.width,soilDepth1);
+                }
+                const soilStart2 = gTop+soilDepth1;
+                const soilDepth2 = Math.min(80, gBottom-soilStart2);
+                if (soilDepth2>0){
+                    const sg2=ctx.createLinearGradient(0,soilStart2,0,soilStart2+soilDepth2);
+                    sg2.addColorStop(0,'#8B4513'); sg2.addColorStop(1,'#a0522d');
+                    ctx.fillStyle=sg2; ctx.fillRect(0,soilStart2,canvas.width,soilDepth2);
+                }
+                const soilStart3=soilStart2+soilDepth2;
+                if (soilStart3<gBottom){
+                    const sg3=ctx.createLinearGradient(0,soilStart3,0,gBottom);
+                    sg3.addColorStop(0,'#a0522d'); sg3.addColorStop(1,'#6b3a1f');
+                    ctx.fillStyle=sg3; ctx.fillRect(0,soilStart3,canvas.width,gBottom-soilStart3);
+                }
+                // 잔디
+                if (groundY>0 && groundY<canvas.height){
+                    ctx.fillStyle='#4a7c3f'; ctx.fillRect(0,groundY-6,canvas.width,10);
+                    const gOff2 = groundScrollX % 14;
+                    ctx.fillStyle='#5a9148';
+                    for(let gx=-gOff2;gx<canvas.width+14;gx+=14){
+                        const h=8+(Math.round(gx+groundScrollX)%5)*2;
+                        ctx.beginPath(); ctx.moveTo(gx,groundY); ctx.lineTo(gx+7,groundY); ctx.lineTo(gx+3,groundY-h); ctx.closePath(); ctx.fill();
+                    }
+                    ctx.fillStyle='#3d6b34';
+                    for(let gx=7-gOff2;gx<canvas.width+14;gx+=14){
+                        const h=6+(Math.round(gx+groundScrollX)%4)*2;
+                        ctx.beginPath(); ctx.moveTo(gx,groundY); ctx.lineTo(gx+7,groundY); ctx.lineTo(gx+4,groundY-h); ctx.closePath(); ctx.fill();
+                    }
+                    ctx.beginPath(); ctx.moveTo(0,groundY); ctx.lineTo(canvas.width,groundY);
+                    ctx.strokeStyle='#2d5a27'; ctx.lineWidth=3; ctx.stroke();
+                }
+                // 지층 점선
+                [[gTop+soilDepth1,'rgba(90,50,15,0.35)'],[gTop+soilDepth1+soilDepth2,'rgba(70,40,12,0.25)']].forEach(([ly,col])=>{
+                    if(ly>gTop&&ly<gBottom){
+                        ctx.setLineDash([18,10]);
+                        ctx.beginPath(); ctx.moveTo(0,ly); ctx.lineTo(canvas.width,ly);
+                        ctx.strokeStyle=col; ctx.lineWidth=1; ctx.stroke(); ctx.setLineDash([]);
+                    }
+                });
+                ctx.fillStyle='#3d2b0e'; ctx.font='bold 13px Pretendard, sans-serif';
+                ctx.fillText('지상 (0m)', 20, Math.min(groundY+22, canvas.height-8));
+            }
+
+            const forceScale = 0.00014; 
+            const l_len = Math.min(lift * forceScale, cy - 50);
+            const g_len = Math.min(gravity * forceScale, cy - 50); 
+            const t_len = Math.min(thrust * forceScale, cx - 50);
+            const d_len = Math.min(drag * forceScale, cx - 50);
+
+            drawArrow(cx, cy, cx, cy - l_len, '#3b82f6', '양력 (Lift)');
+            drawArrow(cx, cy, cx, cy + g_len, '#94a3b8', '중력 (Gravity)');
+            drawArrow(cx, cy, cx - t_len, cy, '#10b981', '추력 (Thrust)');
+            drawArrow(cx, cy, cx + d_len, cy, '#ef4444', '항력 (Drag)');
+
+            // 계속 반복
+            requestAnimationFrame(animate);
+        }
+
+        // 시작 버튼 이벤트
+        startBtn.addEventListener('click', () => {
+            startOverlay.style.display = 'none';
+            lastTime = performance.now();
+            isRunning = true;
+        });
+
+        // 초기 화면 정지 렌더링
+        requestAnimationFrame(animate);
+
+    </script>
+</body>
+</html>
