@@ -1,3 +1,3 @@
 User-agent: *
 Allow: /
-Sitemap: https://sehunyang.github.io/sitemap.xml
+Sitemap: https://shy.ai.kr/sitemap.xml
