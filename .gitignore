@@ -1,0 +1,11 @@
+*.xlsx
+*.xlsm
+*.xls
+*.pptx
+*.hwp
+*.hwpx
+*.csv
+*.docx
+\[카카오톡\]*
+.omc/
+.omx/
