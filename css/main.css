@@ -9,3 +9,4 @@
 @media(max-width:700px){.career-table th{width:34%;white-space:normal}.career-table th,.career-table td{padding:.9rem .35rem}.toast{width:max-content;text-align:center}}
 @media(prefers-reduced-motion:reduce){.career-reveal{grid-template-rows:1fr;opacity:1;translate:0}}
 .brand{width:3.75rem;height:3.75rem;border-radius:15px}.brand img{width:3.45rem;height:3.57rem}
+@media(min-width:701px){main>section{max-width:1120px}}
