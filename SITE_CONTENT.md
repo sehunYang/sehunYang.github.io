@@ -45,9 +45,7 @@
 
 ## 상단 메뉴
 
-- 작업
-- 진행 방식
-- 연락
+- 연수: /training/
 
 ---
 
@@ -437,3 +435,33 @@ sehun2488@ice.go.kr
 양세훈 · 물리교사
 
 GitHub
+
+---
+
+<!-- section:training-page -->
+
+## 연수 페이지
+
+이 아래 내용은 `/training/` 페이지의 목업 데이터입니다.
+
+### 페이지 제목
+
+오늘의 연수
+
+### 날짜와 대상
+
+2026년 7월 26일 · 인공지능 활용 선도교사 연수
+
+### 오늘의 연수 목표
+
+AI에게 원하는 결과를 정확하게 설명하는 방법을 익히고, 간단한 수업용 웹 도구를 직접 제작해 배포합니다. 완성도보다 직접 시작하고 끝까지 실행해 보는 경험에 집중합니다.
+
+### 연수 자료
+
+- 연수 자료 모음: https://drive.google.com/
+
+### 사이트 주소
+
+- ChatGPT: https://chatgpt.com/
+- Gemini: https://gemini.google.com/
+- Claude: https://claude.ai/
