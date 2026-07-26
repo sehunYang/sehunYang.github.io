@@ -11,4 +11,4 @@
 @media(prefers-reduced-motion:reduce){.career-reveal{grid-template-rows:1fr;opacity:1;translate:0}}
 .brand{width:3.75rem;height:3.75rem;border-radius:15px}.brand img{width:3.45rem;height:3.57rem}
 @media(min-width:701px){main>section{max-width:1120px}}
-@media(max-width:700px){.site-header nav{display:flex;margin-left:auto}.brand{width:2.5rem;height:2.5rem;border-radius:10px}.brand img{width:2.3rem;height:2.38rem}}
+@media(max-width:700px){.site-header{gap:.75rem}.site-header nav{display:flex!important;order:2;margin-left:auto;flex:0 0 auto}.site-header .icon-button{display:inline-grid!important;place-items:center;order:3;flex:0 0 2.5rem}.brand{order:1;width:2.5rem;height:2.5rem;border-radius:10px}.brand img{width:2.3rem;height:2.38rem}}
