@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="robots" content="noindex,nofollow">
+  <title>연수 페이지 편집 | 양세훈</title>
+  <link rel="icon" type="image/png" href="/assets/yang-sehun-signature.png?v=1">
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+  <link rel="stylesheet" href="/css/main.css?v=sim-overlay-contrast-3">
+  <link rel="stylesheet" href="/training/edit/edit.css?v=1">
+</head>
+<body>
+<a class="skip" href="#main">본문으로 건너뛰기</a>
+<header class="site-header">
+  <a class="brand" href="/" aria-label="양세훈 홈페이지로 이동"><img src="/assets/yang-sehun-signature.png" alt="" width="2380" height="2473"></a>
+  <nav aria-label="주요 메뉴"><a href="/training/">연수 페이지</a></nav>
+  <button id="theme-toggle" class="icon-button" type="button" aria-label="색상 모드 전환">◐</button>
+</header>
+<main id="main" class="edit-main">
+
+  <section id="auth" class="edit-auth" hidden>
+    <p class="eyebrow">Admin</p>
+    <h1>연수 페이지 편집</h1>
+    <p class="lede">이 화면에서 바꾼 내용은 GitHub 저장소에 바로 저장되고, 약 1분 안에 <a href="https://shy.ai.kr/training/" target="_blank" rel="noopener">shy.ai.kr/training</a>에 반영됩니다. 저장하려면 본인 GitHub 계정의 접근 토큰이 필요합니다. 토큰은 이 브라우저에만 저장되며 GitHub 외의 다른 곳으로 전송되지 않습니다.</p>
+    <details class="edit-help">
+      <summary>토큰 만드는 방법 (한 번만 하면 됩니다)</summary>
+      <ol>
+        <li><a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a> 를 엽니다. (Fine-grained token)</li>
+        <li><strong>Token name</strong>: <code>shy-training-edit</code> 처럼 알아볼 수 있는 이름을 적습니다.</li>
+        <li><strong>Expiration</strong>: 가능한 가장 긴 기간을 고릅니다. 만료되면 같은 방법으로 다시 만들면 됩니다.</li>
+        <li><strong>Repository access</strong>: <em>Only select repositories</em> → <code>sehunYang.github.io</code> 하나만 선택합니다.</li>
+        <li><strong>Permissions → Repository permissions → Contents</strong>: <em>Read and write</em> 로 바꿉니다. 다른 권한은 그대로 둡니다.</li>
+        <li><strong>Generate token</strong>을 누르고, 표시된 토큰(<code>github_pat_…</code>)을 복사해 아래에 붙여넣습니다. 토큰은 그 화면을 벗어나면 다시 볼 수 없으니 바로 붙여넣으세요.</li>
+      </ol>
+    </details>
+    <form id="token-form" class="edit-token-form">
+      <label for="token-input">GitHub 접근 토큰</label>
+      <input id="token-input" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…" required>
+      <button class="button" type="submit">확인하고 시작</button>
+      <p id="token-status" class="edit-status" role="status"></p>
+    </form>
+  </section>
+
+  <section id="editor" class="edit-editor" hidden>
+    <p class="eyebrow">Admin</p>
+    <h1>연수 페이지 편집</h1>
+    <p class="lede">입력하는 대로 아래 미리보기가 바뀝니다. 마음에 들면 <strong>사이트에 저장</strong>을 누르세요.</p>
+
+    <form id="edit-form" class="edit-form" autocomplete="off">
+      <fieldset>
+        <legend>첫 화면</legend>
+        <label>영문 구분명 <input data-path="hero.eyebrow"></label>
+        <label>페이지 제목 <input data-path="hero.title"></label>
+        <label>날짜와 대상 <input data-path="hero.meta" placeholder="2026년 8월 1일 · 인공지능 활용 선도교사 연수"></label>
+      </fieldset>
+
+      <fieldset>
+        <legend>연수 목표</legend>
+        <label>영문 구분명 <input data-path="goal.eyebrow"></label>
+        <label>제목 <input data-path="goal.title"></label>
+        <label>내용 <textarea data-path="goal.text" rows="5"></textarea></label>
+        <p class="edit-hint">줄을 바꾸면 문단이 나뉩니다. <code>**이렇게**</code> 감싸면 굵게 표시됩니다.</p>
+      </fieldset>
+
+      <div id="sections" class="edit-sections"></div>
+      <button id="add-section" class="button secondary edit-add" type="button">+ 링크 묶음 추가</button>
+
+      <fieldset>
+        <legend>검색·탭 표시용 정보</legend>
+        <label>브라우저 탭 제목 <input data-path="meta.title"></label>
+        <label>검색 결과 설명 <input data-path="meta.description"></label>
+      </fieldset>
+    </form>
+
+    <section class="edit-preview" aria-labelledby="preview-title">
+      <h2 id="preview-title">미리보기</h2>
+      <p class="edit-hint">실제 페이지와 같은 화면입니다. 저장 전까지는 나에게만 보입니다.</p>
+      <iframe id="preview-frame" title="연수 페이지 미리보기" src="/training/?preview=1"></iframe>
+    </section>
+
+    <p class="edit-signout"><button id="forget-token" type="button" class="link-button">이 브라우저에서 토큰 삭제</button></p>
+  </section>
+</main>
+
+<div id="toolbar" class="edit-toolbar" hidden>
+  <span id="save-status" class="edit-status" role="status" aria-live="polite">불러오는 중…</span>
+  <span class="edit-toolbar-actions">
+    <button id="reload" class="button secondary" type="button">되돌리기</button>
+    <button id="save" class="button" type="button">사이트에 저장</button>
+  </span>
+</div>
+
+<footer><span>양세훈 · 연수 페이지 편집</span><a href="/training/">연수 페이지로</a></footer>
+<script src="/training/edit/edit.js?v=1"></script>
+</body>
+</html>

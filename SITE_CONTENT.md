@@ -517,7 +517,9 @@ GitHub
 
 ## 연수 페이지
 
-이 아래 내용은 `/training/` 페이지의 목업 데이터입니다.
+**연수 페이지 본문(날짜, 목표, 자료·사이트 링크)은 이 파일이 아니라 사이트의 편집 화면에서 직접 수정합니다.**
+https://shy.ai.kr/training/edit/ 에서 본인 GitHub 토큰으로 로그인해 고치면 `training/content.json`에 저장되고 약 1분 뒤 반영됩니다.
+아래 내용은 참고용 원고이며, 실제 표시 내용은 `training/content.json`이 기준입니다.
 
 ### 브라우저 제목
 

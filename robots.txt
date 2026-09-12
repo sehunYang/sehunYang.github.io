@@ -1,3 +1,4 @@
 User-agent: *
 Allow: /
+Disallow: /training/edit/
 Sitemap: https://shy.ai.kr/sitemap.xml

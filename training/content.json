@@ -1,0 +1,43 @@
+{
+  "updatedAt": "2026-09-12T10:00:00.000Z",
+  "meta": {
+    "title": "오늘의 연수 | 양세훈",
+    "description": "오늘 진행하는 연수의 목표와 자료, 사용할 사이트 주소를 안내합니다."
+  },
+  "hero": {
+    "eyebrow": "Training Day",
+    "title": "오늘의 연수",
+    "meta": "2026년 8월 1일 · 인공지능 활용 선도교사 연수"
+  },
+  "goal": {
+    "eyebrow": "Goal",
+    "title": "오늘의 연수 목표",
+    "text": "AI를 활용해 학생 탐구 데이터를 기반으로 과세특 초안 작성까지 자동화합니다. 그 후, 모둠 별 피드백을 통해 대표작을 선정하여 발표합니다."
+  },
+  "sections": [
+    {
+      "eyebrow": "Materials",
+      "title": "연수 자료",
+      "links": [
+        {
+          "title": "연수 자료 모음",
+          "desc": "슬라이드와 실습 파일을 내려받습니다.",
+          "cta": "다운로드 ↗",
+          "url": "https://drive.google.com/"
+        }
+      ]
+    },
+    {
+      "eyebrow": "Links",
+      "title": "사이트 주소",
+      "links": [
+        {
+          "title": "Lecture Board",
+          "desc": "프롬프트 실시간 공유",
+          "cta": "접속 ↗",
+          "url": "https://shy.ai.kr/Lecture_Board/"
+        }
+      ]
+    }
+  ]
+}
