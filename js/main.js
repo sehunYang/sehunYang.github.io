@@ -1,10 +1,10 @@
 /* 새 시뮬레이션이 생기면 여기에 한 줄만 추가하세요. 순서 = 만든 순서. */
 const SIMS=[
  {slug:'flight_simulation',title:'항공기 풍동 시뮬레이션',copy:'받음각을 올리면 양력이 커지다가, 어느 순간 실속한다',mobileOk:true,note:'처음 만든 것입니다. 조잡하고 깔끔하지 않습니다 — 디자인도 코딩도 모르던 사람이 만들었으니까요. 그런데 실행해보면 비행 조건과 궤도 유지를 충실히 시뮬레이션합니다. 제가 물리교사이기 때문입니다. 여러분도 전공 지식이 가장 큰 무기입니다.'},
- {slug:'newton_cannon',title:'뉴턴의 대포',copy:'포탄과 사과와 달은 지금 이 순간에도 지구를 향해 자유 낙하한다. 발사한 순간의 에너지가 그래프로 남는다',mobileOk:true},
+ {slug:'newton_cannon',title:'뉴턴의 대포',copy:'포탄과 사과와 달은 지금 이 순간에도 지구를 향해 자유 낙하한다',mobileOk:true},
  {slug:'mars',title:'화성 전이',copy:'발사 창이 닫히면 화성에 도달할 수 없다',mobileOk:true},
- {slug:'circuit_simulation',title:'전기회로 시뮬레이터',copy:'회로를 그리면 전자가 흐르고, 물길 비유 3D와 오실로스코프로 눈에 보인다. POE 활동 28개',mobileOk:true},
- {slug:'mechanics_simulation',title:'고전역학 시뮬레이터',copy:'빗면과 도르래를 놓으면 자유물체도와 시간 그래프가 실시간으로 그려진다. POE 활동 34개',mobileOk:true,note:'도메인 지식이 있다면 디자인과 기능은 AI가 결국엔 만들어줍니다. - 누구나 할 수 있습니다. 우리 모두는 무궁한 가능성을 가지고 있습니다.'}
+ {slug:'circuit_simulation',title:'전기회로 시뮬레이터',copy:'그린 회로에 전자가 흐르고, 물길로 바꿔 보면 전압이 높이로 보인다',mobileOk:true},
+ {slug:'mechanics_simulation',title:'고전역학 시뮬레이터',copy:'칠판에 그리던 빗면과 도르래에 힘 화살표와 그래프가 따라붙는다',mobileOk:true,note:'도메인 지식이 있다면 디자인과 기능은 AI가 결국엔 만들어줍니다. - 누구나 할 수 있습니다. 우리 모두는 무궁한 가능성을 가지고 있습니다.'}
 ];
 const tabs=document.querySelector('#sim-tabs'),panel=document.querySelector('#sim-panel');
 const simUrl=s=>`https://shy.ai.kr/${s.slug}/`;
